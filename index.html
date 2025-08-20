@@ -48,7 +48,10 @@
     document.addEventListener("keydown", e => keys[e.key] = true);
     document.addEventListener("keyup", e => keys[e.key] = false);
 
-    const colors = ["#ff1744","#ff9100","#ffc400","#00e676","#2979ff","#d500f9","#ff4081"];
+    const colors = [
+      "#FF1744", "#FF9100", "#FFC400", "#00E676", 
+      "#2979FF", "#D500F9", "#FF4081", "#76FF03"
+    ];
 
     function spawnBlock() {
       let size = 20 + Math.random() * 30;
@@ -89,7 +92,7 @@
 
     function draw() {
       // Flashing background
-      let bgFlash = Math.floor(30 + Math.sin(flashTimer) * 30);
+      let bgFlash = Math.floor(20 + Math.sin(flashTimer) * 20);
       ctx.fillStyle = `rgb(${bgFlash},${bgFlash},${bgFlash})`;
       ctx.fillRect(0,0,canvas.width,canvas.height);
 
@@ -102,10 +105,10 @@
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Blocks with flashing glow
+      // Blocks with their own colors + flashing glow
       for (let b of blocks) {
         ctx.fillStyle = b.color;
-        ctx.shadowBlur = 15 + Math.sin(flashTimer*2) * 10;
+        ctx.shadowBlur = 15 + Math.sin(flashTimer*4) * 10;
         ctx.shadowColor = b.color;
         ctx.fillRect(b.x, b.y, b.w, b.h);
         ctx.shadowBlur = 0;
