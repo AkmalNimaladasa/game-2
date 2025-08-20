@@ -8,7 +8,7 @@
     body {
       margin: 0;
       overflow: hidden;
-      background: #111;
+      background: #000;
       color: white;
       font-family: Arial, sans-serif;
       text-align: center;
@@ -16,7 +16,7 @@
     #gameCanvas {
       display: block;
       margin: auto;
-      background: #222;
+      background: #111;
     }
     #hud {
       position: absolute;
@@ -25,7 +25,7 @@
       transform: translateX(-50%);
       font-size: 20px;
       font-weight: bold;
-      text-shadow: 0 0 5px black;
+      text-shadow: 0 0 10px black;
     }
   </style>
 </head>
@@ -43,14 +43,18 @@
     let score = 0;
     let gameOver = false;
     let keys = {};
+    let flashTimer = 0;
 
     document.addEventListener("keydown", e => keys[e.key] = true);
     document.addEventListener("keyup", e => keys[e.key] = false);
 
+    const colors = ["#ff1744","#ff9100","#ffc400","#00e676","#2979ff","#d500f9","#ff4081"];
+
     function spawnBlock() {
       let size = 20 + Math.random() * 30;
       let x = Math.random() * (canvas.width - size);
-      blocks.push({ x: x, y: -size, w: size, h: size, speed: 2 + score/50 });
+      let color = colors[Math.floor(Math.random()*colors.length)];
+      blocks.push({ x: x, y: -size, w: size, h: size, speed: 2 + score/50, color: color });
     }
 
     function update() {
@@ -72,29 +76,40 @@
         if (player.x > b.x && player.x < b.x+b.w &&
             player.y > b.y && player.y < b.y+b.h) {
           gameOver = true;
-          hud.innerText = "GAME OVER! Final Score: " + score;
+          hud.innerText = "💀 GAME OVER 💀 Final Score: " + score;
         }
       }
 
-      // Spawn blocks over time
+      // Spawn blocks
       if (Math.random() < 0.02 + score/1000) spawnBlock();
 
-      hud.innerText = "Score: " + score;
+      hud.innerText = "⚡ Score: " + score;
+      flashTimer += 0.1;
     }
 
     function draw() {
-      ctx.fillStyle = "#111";
+      // Flashing background
+      let bgFlash = Math.floor(30 + Math.sin(flashTimer) * 30);
+      ctx.fillStyle = `rgb(${bgFlash},${bgFlash},${bgFlash})`;
       ctx.fillRect(0,0,canvas.width,canvas.height);
 
       // Player
       ctx.beginPath();
       ctx.fillStyle = "gold";
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = "yellow";
       ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
       ctx.fill();
+      ctx.shadowBlur = 0;
 
-      // Blocks
-      ctx.fillStyle = "red";
-      for (let b of blocks) ctx.fillRect(b.x,b.y,b.w,b.h);
+      // Blocks with flashing glow
+      for (let b of blocks) {
+        ctx.fillStyle = b.color;
+        ctx.shadowBlur = 15 + Math.sin(flashTimer*2) * 10;
+        ctx.shadowColor = b.color;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.shadowBlur = 0;
+      }
     }
 
     function loop() {
