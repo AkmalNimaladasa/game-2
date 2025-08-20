@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Dodge the Blocks</title>
+  <title>Dodge the Blocks + Nasheed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -14,42 +14,68 @@
       text-align: center;
     }
     #gameCanvas {
-      display: block;
+      display: none;
       margin: auto;
       background: #111;
     }
-    #hud {
+    #hud, #leaderboard {
+      display: none;
       position: absolute;
-      top: 10px;
       left: 50%;
       transform: translateX(-50%);
+    }
+    #hud {
+      top: 10px;
       font-size: 20px;
       font-weight: bold;
       text-shadow: 0 0 10px black;
     }
     #leaderboard {
-      position: absolute;
       top: 50px;
-      left: 50%;
-      transform: translateX(-50%);
       font-size: 16px;
       color: #0f0;
       font-family: monospace;
       text-align: left;
       white-space: pre;
     }
+    #startBtn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%,-50%);
+      font-size: 24px;
+      padding: 15px 30px;
+      background: gold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 20px yellow;
+    }
   </style>
 </head>
 <body>
+  <!-- Start Screen -->
+  <button id="startBtn">▶ Start Game</button>
+
+  <!-- HUD and Leaderboard -->
   <div id="hud">Score: 0</div>
   <div id="leaderboard"></div>
+
+  <!-- Game Canvas -->
   <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+  <!-- Nasheed Audio -->
+  <audio id="nasheed" loop>
+    <source src="nasheed.mp3" type="audio/mpeg">
+  </audio>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const hud = document.getElementById("hud");
     const leaderboardDiv = document.getElementById("leaderboard");
+    const startBtn = document.getElementById("startBtn");
+    const nasheed = document.getElementById("nasheed");
 
     let player = { x: 200, y: 550, r: 15, speed: 5 };
     let blocks = [];
@@ -57,38 +83,32 @@
     let gameOver = false;
     let keys = {};
     let flashTimer = 0;
+    let running = false;
 
     document.addEventListener("keydown", e => keys[e.key] = true);
     document.addEventListener("keyup", e => keys[e.key] = false);
 
-    const colors = [
-      "#FF1744", "#FF9100", "#FFC400", "#00E676", 
-      "#2979FF", "#D500F9", "#FF4081", "#76FF03"
-    ];
+    const colors = ["#FF1744","#FF9100","#FFC400","#00E676","#2979FF","#D500F9","#FF4081","#76FF03"];
 
-    // --- Leaderboard Functions ---
+    // --- Leaderboard ---
     function saveScore(newScore) {
       let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
       scores.push(newScore);
       scores.sort((a,b) => b-a);
-      scores = scores.slice(0,5); // top 5
+      scores = scores.slice(0,5); // keep top 5
       localStorage.setItem("leaderboard", JSON.stringify(scores));
     }
-
     function getScores() {
       return JSON.parse(localStorage.getItem("leaderboard")) || [];
     }
-
     function renderLeaderboard() {
       let scores = getScores();
       let text = "🏆 Leaderboard 🏆\n";
-      scores.forEach((s,i) => {
-        text += `${i+1}. ${s}\n`;
-      });
+      scores.forEach((s,i)=> text += `${i+1}. ${s}\n`);
       leaderboardDiv.innerText = text;
     }
 
-    // --- Game Functions ---
+    // --- Blocks ---
     function spawnBlock() {
       let size = 20 + Math.random() * 30;
       let x = Math.random() * (canvas.width - size);
@@ -96,12 +116,13 @@
       blocks.push({ x: x, y: -size, w: size, h: size, speed: 2 + score/50, color: color });
     }
 
+    // --- Game Update ---
     function update() {
-      if (gameOver) return;
+      if (!running || gameOver) return;
 
-      // Player movement
-      if ((keys["ArrowLeft"] || keys["a"]) && player.x - player.r > 0) player.x -= player.speed;
-      if ((keys["ArrowRight"] || keys["d"]) && player.x + player.r < canvas.width) player.x += player.speed;
+      // Move player
+      if ((keys["ArrowLeft"]||keys["a"]) && player.x - player.r > 0) player.x -= player.speed;
+      if ((keys["ArrowRight"]||keys["d"]) && player.x + player.r < canvas.width) player.x += player.speed;
 
       // Move blocks
       for (let b of blocks) {
@@ -110,8 +131,7 @@
           blocks.splice(blocks.indexOf(b),1);
           score++;
         }
-
-        // Collision detection
+        // Collision
         if (player.x > b.x && player.x < b.x+b.w &&
             player.y > b.y && player.y < b.y+b.h) {
           gameOver = true;
@@ -121,27 +141,26 @@
         }
       }
 
-      // Spawn blocks
       if (Math.random() < 0.02 + score/1000) spawnBlock();
 
       hud.innerText = "⚡ Score: " + score;
       flashTimer += 0.1;
     }
 
+    // --- Drawing ---
     function draw() {
-      // Flashing background
+      if (!running) return;
+
       let bgFlash = Math.floor(20 + Math.sin(flashTimer) * 20);
       ctx.fillStyle = `rgb(${bgFlash},${bgFlash},${bgFlash})`;
       ctx.fillRect(0,0,canvas.width,canvas.height);
 
       // Player
       ctx.beginPath();
-      ctx.fillStyle = "gold";
-      ctx.shadowBlur = 20;
-      ctx.shadowColor = "yellow";
+      ctx.fillStyle="gold";
+      ctx.shadowBlur=20; ctx.shadowColor="yellow";
       ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      ctx.fill(); ctx.shadowBlur=0;
 
       // Blocks
       for (let b of blocks) {
@@ -153,14 +172,25 @@
       }
     }
 
+    // --- Game Loop ---
     function loop() {
       update();
       draw();
       requestAnimationFrame(loop);
     }
 
-    // Init
-    renderLeaderboard();
+    // --- Start Button ---
+    startBtn.onclick = () => {
+      startBtn.style.display = "none";
+      canvas.style.display = "block";
+      hud.style.display = "block";
+      leaderboardDiv.style.display = "block";
+      running = true;
+      score = 0; gameOver = false; blocks = [];
+      renderLeaderboard();
+      nasheed.play().catch(()=>console.log("Autoplay blocked until user action"));
+    };
+
     loop();
   </script>
 </body>
