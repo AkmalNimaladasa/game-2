@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dodge the Blocks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #gameCanvas {
+      display: block;
+      margin: auto;
+      background: #222;
+    }
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 0 0 5px black;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">Score: 0</div>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const hud = document.getElementById("hud");
+
+    let player = { x: 200, y: 550, r: 15, speed: 5 };
+    let blocks = [];
+    let score = 0;
+    let gameOver = false;
+    let keys = {};
+
+    document.addEventListener("keydown", e => keys[e.key] = true);
+    document.addEventListener("keyup", e => keys[e.key] = false);
+
+    function spawnBlock() {
+      let size = 20 + Math.random() * 30;
+      let x = Math.random() * (canvas.width - size);
+      blocks.push({ x: x, y: -size, w: size, h: size, speed: 2 + score/50 });
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      // Player movement
+      if (keys["ArrowLeft"] && player.x - player.r > 0) player.x -= player.speed;
+      if (keys["ArrowRight"] && player.x + player.r < canvas.width) player.x += player.speed;
+
+      // Move blocks
+      for (let b of blocks) {
+        b.y += b.speed;
+        if (b.y > canvas.height) {
+          blocks.splice(blocks.indexOf(b),1);
+          score++;
+        }
+
+        // Collision detection
+        if (player.x > b.x && player.x < b.x+b.w &&
+            player.y > b.y && player.y < b.y+b.h) {
+          gameOver = true;
+          hud.innerText = "GAME OVER! Final Score: " + score;
+        }
+      }
+
+      // Spawn blocks over time
+      if (Math.random() < 0.02 + score/1000) spawnBlock();
+
+      hud.innerText = "Score: " + score;
+    }
+
+    function draw() {
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      // Player
+      ctx.beginPath();
+      ctx.fillStyle = "gold";
+      ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
+      ctx.fill();
+
+      // Blocks
+      ctx.fillStyle = "red";
+      for (let b of blocks) ctx.fillRect(b.x,b.y,b.w,b.h);
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
+</body>
+</html>
