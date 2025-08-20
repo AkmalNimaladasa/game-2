@@ -27,16 +27,29 @@
       font-weight: bold;
       text-shadow: 0 0 10px black;
     }
+    #leaderboard {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      color: #0f0;
+      font-family: monospace;
+      text-align: left;
+      white-space: pre;
+    }
   </style>
 </head>
 <body>
   <div id="hud">Score: 0</div>
+  <div id="leaderboard"></div>
   <canvas id="gameCanvas" width="400" height="600"></canvas>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const hud = document.getElementById("hud");
+    const leaderboardDiv = document.getElementById("leaderboard");
 
     let player = { x: 200, y: 550, r: 15, speed: 5 };
     let blocks = [];
@@ -53,6 +66,29 @@
       "#2979FF", "#D500F9", "#FF4081", "#76FF03"
     ];
 
+    // --- Leaderboard Functions ---
+    function saveScore(newScore) {
+      let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
+      scores.push(newScore);
+      scores.sort((a,b) => b-a);
+      scores = scores.slice(0,5); // top 5
+      localStorage.setItem("leaderboard", JSON.stringify(scores));
+    }
+
+    function getScores() {
+      return JSON.parse(localStorage.getItem("leaderboard")) || [];
+    }
+
+    function renderLeaderboard() {
+      let scores = getScores();
+      let text = "🏆 Leaderboard 🏆\n";
+      scores.forEach((s,i) => {
+        text += `${i+1}. ${s}\n`;
+      });
+      leaderboardDiv.innerText = text;
+    }
+
+    // --- Game Functions ---
     function spawnBlock() {
       let size = 20 + Math.random() * 30;
       let x = Math.random() * (canvas.width - size);
@@ -64,8 +100,8 @@
       if (gameOver) return;
 
       // Player movement
-      if (keys["ArrowLeft"] && player.x - player.r > 0) player.x -= player.speed;
-      if (keys["ArrowRight"] && player.x + player.r < canvas.width) player.x += player.speed;
+      if ((keys["ArrowLeft"] || keys["a"]) && player.x - player.r > 0) player.x -= player.speed;
+      if ((keys["ArrowRight"] || keys["d"]) && player.x + player.r < canvas.width) player.x += player.speed;
 
       // Move blocks
       for (let b of blocks) {
@@ -80,6 +116,8 @@
             player.y > b.y && player.y < b.y+b.h) {
           gameOver = true;
           hud.innerText = "💀 GAME OVER 💀 Final Score: " + score;
+          saveScore(score);
+          renderLeaderboard();
         }
       }
 
@@ -105,7 +143,7 @@
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Blocks with their own colors + flashing glow
+      // Blocks
       for (let b of blocks) {
         ctx.fillStyle = b.color;
         ctx.shadowBlur = 15 + Math.sin(flashTimer*4) * 10;
@@ -121,6 +159,8 @@
       requestAnimationFrame(loop);
     }
 
+    // Init
+    renderLeaderboard();
     loop();
   </script>
 </body>
